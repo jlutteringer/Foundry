@@ -16,18 +16,16 @@
 ; [a _ validate-a]
 ; Expanded Form:
 ; {:label a :default "a" :validator validate-a}
-(defrecord Argument [label default validator])
-
 (defn arg-expand-vector-field [field-vector]
-  (cond (= (count field-vector) 1) (->Argument (first field-vector) nil nil)
+  (cond (= (count field-vector) 1) {:label (first field-vector)}
         (= (count field-vector) 2)
           (if (= (second field-vector) '_)
-            (->Argument (first field-vector) nil nil)
-            (->Argument (first field-vector) (second field-vector) nil))
+            {:label (first field-vector)}
+            {:label (first field-vector) :default (second field-vector)})
         (= (count field-vector) 3)
           (if (= (second field-vector) '_)
-            (->Argument (first field-vector) nil  (get field-vector 2))
-            (->Argument (first field-vector) (second field-vector) (get field-vector 2)))))
+            {:label (first field-vector) :validator (get field-vector 2)}
+            {:label (first field-vector) :default (second field-vector) :validator (get field-vector 2)})))
 
 (defn parse-arg [field]
   {:post [(-> % :label symbol?)]}
@@ -36,24 +34,23 @@
         (vector? field) (arg-expand-vector-field field)))
 
 (def default-arg? #(contains? % :default))
-(def required-arg-predicate #(not (default-arg? %)))
+(def required-arg? #(not (default-arg? %)))
+
 (defn required-args [args]
-  (filter required-arg-predicate args))
+  (filter required-arg? args))
+
+(defn default-args [args]
+  (filter default-arg? args))
 
 (defn required-arg-positions [expanded-fields]
   (map first (filter
-               #(required-arg-predicate (second %))
+               #(required-arg? (second %))
                (map-indexed (fn [i field] [i field]) expanded-fields))))
 
-;["a" "c"]
-;[0 2]
-;["b" "d"]
-;["a" "b" "c" "d"]
-(defn position-merge [values positions target]
-  ())
+(defn arg-defaults-map [args]
+  (apply #(hash-map (keyword (:label %)) (:default %)) (default-args args)))
 
 ;(partition 2 (conj positions -1))
-
 (defn record-apply-default-args [args expanded-fields]
   (let [args (into [] args) required-fields (into [] (required-args expanded-fields))]
     (cond
@@ -61,12 +58,9 @@
         (util/assert-error "Insufficient number of args " args " for required fields "
           (map :label required-fields))
       (= (count args) (count required-fields))
-        (let [required-field-positions (required-arg-positions expanded-fields)]
-          (map-indexed ))
-        (map-indexed
-          #(if (record-field-default? %2)
-            (:default %2)
-            (get args %1)) expanded-fields)
+        (util/position-merge
+          (map vector args (required-arg-positions expanded-fields))
+          (map :default (filter default-arg? expanded-fields)))
       :else
         (map-indexed
           #(let [arg (get args %1)]
@@ -87,8 +81,15 @@
         ~'[& args]
         ~(record-make-constructor-macro-body record-token expanded-fields)))
 
-(defmacro record-make-constructor [record-token fields]
+(defmacro record-make-primary-constructor [record-token fields]
   (record-make-constructor-macro record-token (into [] (map parse-arg fields))))
+
+(defmacro record-make-map-constructor [record-token fields]
+  `(defn
+     ~(symbol (str "map->" (string/convert-format (name record-token) :dash-lowercase)))
+     ~'[fieldMap]
+      (~(symbol (str "map->" record-token))
+        (merge ~(arg-defaults-map (map parse-arg fields)) ~'fieldMap))))
 
 ; (record TestRecord [a [b "b"] c [d "d"] {:label d :default "d" :validator validation-fn}])
 
@@ -100,4 +101,5 @@
 (defmacro record [record-token fields]
   `(do
      (record-make-definition ~record-token ~fields)
-     (record-make-constructor ~record-token ~fields)))
+     (record-make-primary-constructor ~record-token ~fields)
+     (record-make-map-constructor ~record-token ~fields)))

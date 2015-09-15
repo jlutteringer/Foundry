@@ -42,3 +42,21 @@
 
 (defn assert-error [& messages]
   (throw (new AssertionError (apply pr-str messages))))
+
+(defn position-merge-helper [values target result]
+  (cond (empty? values) (concat result target)
+        (empty? target) (concat result (map first values))
+        :else
+        (if (zero? (second (first values)))
+          (recur (map #(vector (first %) (dec (second %))) (rest values))
+                 target
+                 (conj result (first (first values))))
+          (recur (map #(vector (first %) (dec (second %))) values)
+                 (rest target)
+                 (conj result (first target))))))
+
+;[["a" 0] ["c" 2]]
+;["b" "d"]
+;["a" "b" "c" "d"]
+(defn position-merge [values target]
+  (position-merge-helper (sort-by second values) target []))

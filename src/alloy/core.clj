@@ -48,7 +48,12 @@
                (map-indexed (fn [i field] [i field]) expanded-fields))))
 
 (defn arg-defaults-map [args]
-  (apply #(hash-map (keyword (:label %)) (:default %)) (default-args args)))
+  (let [default-arg-list (default-args args)]
+    (if (empty? default-arg-list)
+      {}
+      (apply
+        #(hash-map (keyword (:label %)) (:default %))
+        (default-args args)))))
 
 ;(partition 2 (conj positions -1))
 (defn record-apply-default-args [args expanded-fields]

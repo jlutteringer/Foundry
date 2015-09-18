@@ -1,4 +1,4 @@
-(ns alloy.util
+(ns alloy.core.util
   (:import (java.util.regex Pattern)))
 
 (def pattern? #(instance? Pattern %))
@@ -60,3 +60,6 @@
 ;["a" "b" "c" "d"]
 (defn position-merge [values target]
   (position-merge-helper (sort-by second values) target []))
+
+(defn rand-between [left-bound right-bound]
+  (+ (rand (- right-bound left-bound)) left-bound))

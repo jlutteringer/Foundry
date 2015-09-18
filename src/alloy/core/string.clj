@@ -1,5 +1,5 @@
-(ns alloy.string
-  (:require [alloy.util :as util]))
+(ns alloy.core.string
+  (:require [alloy.core.util :as util]))
 
 (def default-character-encoding :utf-8)
 

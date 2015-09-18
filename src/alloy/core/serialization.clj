@@ -1,6 +1,7 @@
-(ns alloy.serialization
+(ns alloy.core.serialization
   (:use [taoensso.timbre])
-  (:import [java.nio.charset Charset]))
+  (:import [java.nio.charset Charset])
+  (:require [alloy.core.core :refer :all]))
 
 ;we can do better here, I think. I don't think
 ;(def ascii "The ASCII charset object" (Charset/forName "US-ASCII"))
@@ -21,7 +22,7 @@
 (def default-charset "Default charset of this JVM" (.name (Charset/defaultCharset)))
 (def target-charset "Usual charset for external calls" utf-8)
 
-(defrecord MimeType [primary-type sub-type])
+(record MimeType [[primary-type "application"] sub-type])
 (defn make-mime-type [sub-type & {:keys [primary-type] :or {primary-type "application"}}]
   (MimeType. primary-type sub-type))
 (defn parse-mime-type [] ())

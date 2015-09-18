@@ -1,6 +1,6 @@
-(ns alloy.core
-  (:require [alloy.string :as string]
-            [alloy.util :as util]))
+(ns alloy.core.core
+  (:require [alloy.core.string :as string]
+            [alloy.core.util :as util]))
 
 (defn record-extract-fields [fields]
   (map #(if (symbol? %) % (first %)) fields))
@@ -78,7 +78,7 @@
 (defn record-make-constructor-macro-body [record-token expanded-fields]
   `(conj
         (record-apply-default-args ~'args '~expanded-fields)
-        '~(symbol (str "->" record-token))))
+        '~(symbol (str *ns* "/->" record-token))))
 
 (defn record-make-constructor-macro [record-token expanded-fields]
   `(defmacro
@@ -89,7 +89,7 @@
 (defmacro record-make-primary-constructor [record-token fields]
   (record-make-constructor-macro record-token (into [] (map parse-arg fields))))
 
-(defmacro record-make-map-constructor [record-token fields]
+(defn record-make-map-constructor [record-token fields]
   `(defn
      ~(symbol (str "map->" (string/convert-format (name record-token) :dash-lowercase)))
      ~'[fieldMap]
@@ -106,5 +106,6 @@
 (defmacro record [record-token fields]
   `(do
      (record-make-definition ~record-token ~fields)
-     (record-make-primary-constructor ~record-token ~fields)
-     (record-make-map-constructor ~record-token ~fields)))
+     (record-make-primary-constructor ~record-token ~fields)))
+
+;(record-make-map-constructor ~record-token ~fields)
